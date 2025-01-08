@@ -107,6 +107,8 @@ function LaunchPad() {
       await connection.getLatestBlockhash()
     ).blockhash;
     transaction.partialSign(keypair);
+    console.log(transaction, connection);
+
     await wallet.sendTransaction(transaction, connection);
     console.log(`Token mint created at ${keypair.publicKey.toBase58()}`);
 
