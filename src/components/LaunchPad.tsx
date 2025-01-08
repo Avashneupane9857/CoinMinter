@@ -5,16 +5,13 @@ import {
   createInitializeMint2Instruction,
   getMinimumBalanceForRentExemptMint,
   MINT_SIZE,
+  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import {
-  Keypair,
-  sendAndConfirmTransaction,
-  SystemProgram,
-  Transaction,
-} from "@solana/web3.js";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { Keypair, SystemProgram, Transaction } from "@solana/web3.js";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 function LaunchPad() {
+  const { connection } = useConnection();
   const wallet = useWallet();
   const [formData, setFormData] = useState({
     name: "",
@@ -31,27 +28,38 @@ function LaunchPad() {
     }));
   };
 
-  const createToken = async () => {
+  const createToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!wallet.publicKey || !wallet.signTransaction) {
+      console.error("Wallet not connected!");
+      return;
+    }
     const lamports = await getMinimumBalanceForRentExemptMint(connection);
     const keypair = Keypair.generate();
     const transaction = new Transaction().add(
       SystemProgram.createAccount({
-        fromPubkey: payer.publicKey,
+        fromPubkey: wallet.publicKey,
         newAccountPubkey: keypair.publicKey,
         space: MINT_SIZE,
         lamports,
-        programId,
+        programId: TOKEN_PROGRAM_ID,
       }),
       createInitializeMint2Instruction(
         keypair.publicKey,
-        decimals,
-        mintAuthority,
-        freezeAuthority,
-        programId
+        8,
+        wallet.publicKey,
+        wallet.publicKey,
+        TOKEN_PROGRAM_ID
       )
     );
+    transaction.feePayer = wallet.publicKey;
+    transaction.recentBlockhash = (
+      await connection.getLatestBlockhash()
+    ).blockhash;
     transaction.partialSign(keypair);
-    await wallet.signTransaction(transaction);
+    await wallet.sendTransaction(transaction, connection);
+    console.log(`Token mint created at ${keypair.publicKey.toBase58()}`);
+    alert(`Token mint created at ${keypair.publicKey.toBase58()}`);
   };
 
   return (
