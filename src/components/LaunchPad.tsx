@@ -2,14 +2,33 @@ import React, { useState } from "react";
 import { Terminal, Rocket, Image, Coins } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import {
-  createInitializeMint2Instruction,
-  getMinimumBalanceForRentExemptMint,
+  createInitializeInstruction,
+  createInitializeMetadataPointerInstruction,
+  createInitializeMintInstruction,
+  ExtensionType,
+  getMintLen,
+  LENGTH_SIZE,
   MINT_SIZE,
+  TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
+  TYPE_SIZE,
 } from "@solana/spl-token";
 import { Keypair, SystemProgram, Transaction } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+const packMetadata = (metadata: any) => {
+  const name = Buffer.from(metadata.name);
+  const symbol = Buffer.from(metadata.symbol);
+  const uri = Buffer.from(metadata.uri);
 
+  return Buffer.concat([
+    name,
+    Buffer.alloc(32 - name.length),
+    symbol,
+    Buffer.alloc(10 - symbol.length),
+    uri,
+    Buffer.alloc(200 - uri.length),
+  ]);
+};
 function LaunchPad() {
   const { connection } = useConnection();
   const wallet = useWallet();
@@ -34,8 +53,21 @@ function LaunchPad() {
       console.error("Wallet not connected!");
       return;
     }
-    const lamports = await getMinimumBalanceForRentExemptMint(connection);
+
     const keypair = Keypair.generate();
+    const metadata = {
+      mint: keypair.publicKey,
+      name: "Tribro",
+      symbol: "TRI",
+      uri: "https://gratisography.com/wp-content/uploads/2024/10/gratisography-cool-cat-800x525.jpg",
+      additionalMetadata: [],
+    };
+    const mintLen = getMintLen([ExtensionType.MetadataPointer]);
+    const packedMetadata = packMetadata(metadata);
+    const metadataLen = TYPE_SIZE + LENGTH_SIZE + packedMetadata.length;
+    const lamports = await connection.getMinimumBalanceForRentExemption(
+      mintLen + metadataLen
+    );
     const transaction = new Transaction().add(
       SystemProgram.createAccount({
         fromPubkey: wallet.publicKey,
@@ -44,13 +76,29 @@ function LaunchPad() {
         lamports,
         programId: TOKEN_PROGRAM_ID,
       }),
-      createInitializeMint2Instruction(
+      createInitializeMetadataPointerInstruction(
         keypair.publicKey,
-        8,
         wallet.publicKey,
+        keypair.publicKey,
+        TOKEN_2022_PROGRAM_ID
+      ),
+      createInitializeMintInstruction(
+        keypair.publicKey,
+        9,
         wallet.publicKey,
-        TOKEN_PROGRAM_ID
-      )
+        null,
+        TOKEN_2022_PROGRAM_ID
+      ),
+      createInitializeInstruction({
+        programId: TOKEN_2022_PROGRAM_ID,
+        mint: keypair.publicKey,
+        metadata: keypair.publicKey,
+        name: metadata.name,
+        symbol: metadata.symbol,
+        uri: metadata.uri,
+        mintAuthority: wallet.publicKey,
+        updateAuthority: wallet.publicKey,
+      })
     );
     transaction.feePayer = wallet.publicKey;
     transaction.recentBlockhash = (
@@ -59,7 +107,7 @@ function LaunchPad() {
     transaction.partialSign(keypair);
     await wallet.sendTransaction(transaction, connection);
     console.log(`Token mint created at ${keypair.publicKey.toBase58()}`);
-    alert(`Token mint created at ${keypair.publicKey.toBase58()}`);
+
   };
 
   return (
