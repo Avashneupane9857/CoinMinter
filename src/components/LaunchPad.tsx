@@ -2,15 +2,17 @@ import React, { useState } from "react";
 import { Terminal, Rocket, Image, Coins } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import {
+  createAssociatedTokenAccountInstruction,
   createInitializeInstruction,
   createInitializeMetadataPointerInstruction,
   createInitializeMintInstruction,
+  createMintToInstruction,
   ExtensionType,
+  getAssociatedTokenAddressSync,
   getMintLen,
   LENGTH_SIZE,
   MINT_SIZE,
   TOKEN_2022_PROGRAM_ID,
-  TOKEN_PROGRAM_ID,
   TYPE_SIZE,
 } from "@solana/spl-token";
 import { Keypair, SystemProgram, Transaction } from "@solana/web3.js";
@@ -57,9 +59,9 @@ function LaunchPad() {
     const keypair = Keypair.generate();
     const metadata = {
       mint: keypair.publicKey,
-      name: "Tribro",
-      symbol: "TRI",
-      uri: "https://gratisography.com/wp-content/uploads/2024/10/gratisography-cool-cat-800x525.jpg",
+      name: formData.name,
+      symbol: formData.symbol,
+      uri: formData.imageUrl,
       additionalMetadata: [],
     };
     const mintLen = getMintLen([ExtensionType.MetadataPointer]);
@@ -74,7 +76,7 @@ function LaunchPad() {
         newAccountPubkey: keypair.publicKey,
         space: MINT_SIZE,
         lamports,
-        programId: TOKEN_PROGRAM_ID,
+        programId: TOKEN_2022_PROGRAM_ID,
       }),
       createInitializeMetadataPointerInstruction(
         keypair.publicKey,
@@ -108,6 +110,42 @@ function LaunchPad() {
     await wallet.sendTransaction(transaction, connection);
     console.log(`Token mint created at ${keypair.publicKey.toBase58()}`);
 
+    // left
+    const associatedToken = getAssociatedTokenAddressSync(
+      keypair.publicKey,
+      wallet.publicKey,
+      false,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    console.log(associatedToken.toBase58());
+
+    const transaction2 = new Transaction().add(
+      createAssociatedTokenAccountInstruction(
+        wallet.publicKey,
+        associatedToken,
+        wallet.publicKey,
+        keypair.publicKey,
+        TOKEN_2022_PROGRAM_ID
+      )
+    );
+
+    await wallet.sendTransaction(transaction2, connection);
+
+    const transaction3 = new Transaction().add(
+      createMintToInstruction(
+        keypair.publicKey,
+        associatedToken,
+        wallet.publicKey,
+        1000000000,
+        [],
+        TOKEN_2022_PROGRAM_ID
+      )
+    );
+
+    await wallet.sendTransaction(transaction3, connection);
+
+    console.log("Minted!");
   };
 
   return (
