@@ -1,7 +1,21 @@
 import React, { useState } from "react";
 import { Terminal, Rocket, Image, Coins } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
+import {
+  createInitializeMint2Instruction,
+  getMinimumBalanceForRentExemptMint,
+  MINT_SIZE,
+} from "@solana/spl-token";
+import {
+  Keypair,
+  sendAndConfirmTransaction,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
+import { useWallet } from "@solana/wallet-adapter-react";
+
 function LaunchPad() {
+  const wallet = useWallet();
   const [formData, setFormData] = useState({
     name: "",
     symbol: "",
@@ -17,13 +31,31 @@ function LaunchPad() {
     }));
   };
 
-  const createToken = () => {
-    // Token creation logic here
+  const createToken = async () => {
+    const lamports = await getMinimumBalanceForRentExemptMint(connection);
+    const keypair = Keypair.generate();
+    const transaction = new Transaction().add(
+      SystemProgram.createAccount({
+        fromPubkey: payer.publicKey,
+        newAccountPubkey: keypair.publicKey,
+        space: MINT_SIZE,
+        lamports,
+        programId,
+      }),
+      createInitializeMint2Instruction(
+        keypair.publicKey,
+        decimals,
+        mintAuthority,
+        freezeAuthority,
+        programId
+      )
+    );
+    transaction.partialSign(keypair);
+    await wallet.signTransaction(transaction);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white p-6">
-      {/* Decorative elements */}
       <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-green-500"></div>
       <div className="fixed bottom-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 via-blue-500 to-purple-500"></div>
 
@@ -39,7 +71,6 @@ function LaunchPad() {
           <CardContent className="p-6">
             <form className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Name Input */}
                 <div className="space-y-2">
                   <label className="flex items-center text-sm font-medium text-gray-300 mb-1">
                     <Terminal className="w-4 h-4 mr-2" />
@@ -55,7 +86,6 @@ function LaunchPad() {
                   />
                 </div>
 
-                {/* Symbol Input */}
                 <div className="space-y-2">
                   <label className="flex items-center text-sm font-medium text-gray-300 mb-1">
                     <Rocket className="w-4 h-4 mr-2" />
@@ -71,7 +101,6 @@ function LaunchPad() {
                   />
                 </div>
 
-                {/* Image URL Input */}
                 <div className="space-y-2">
                   <label className="flex items-center text-sm font-medium text-gray-300 mb-1">
                     <Image className="w-4 h-4 mr-2" />
@@ -87,7 +116,6 @@ function LaunchPad() {
                   />
                 </div>
 
-                {/* Initial Supply Input */}
                 <div className="space-y-2">
                   <label className="flex items-center text-sm font-medium text-gray-300 mb-1">
                     <Coins className="w-4 h-4 mr-2" />
@@ -104,7 +132,6 @@ function LaunchPad() {
                 </div>
               </div>
 
-              {/* Submit Button */}
               <div className="mt-8">
                 <button
                   onClick={createToken}
