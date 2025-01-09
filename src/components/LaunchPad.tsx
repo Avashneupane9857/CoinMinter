@@ -2,13 +2,10 @@ import React, { useState } from "react";
 import { Terminal, Rocket, Image, Coins } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import {
-  createAssociatedTokenAccountInstruction,
   createInitializeInstruction,
   createInitializeMetadataPointerInstruction,
   createInitializeMintInstruction,
-  createMintToInstruction,
   ExtensionType,
-  getAssociatedTokenAddressSync,
   getMintLen,
   LENGTH_SIZE,
   MINT_SIZE,
@@ -113,43 +110,43 @@ function LaunchPad() {
     console.log(`Token mint created at ${keypair.publicKey.toBase58()}`);
 
     // left
-    const associatedToken = getAssociatedTokenAddressSync(
-      keypair.publicKey,
-      wallet.publicKey,
-      false,
-      TOKEN_2022_PROGRAM_ID
-    );
+    // const associatedToken = getAssociatedTokenAddressSync(
+    //   keypair.publicKey,
+    //   wallet.publicKey,
+    //   false,
+    //   TOKEN_2022_PROGRAM_ID
+    // );
 
-    console.log(associatedToken.toBase58());
+    // console.log(associatedToken.toBase58());
 
-    const transaction2 = new Transaction().add(
-      createAssociatedTokenAccountInstruction(
-        wallet.publicKey,
-        associatedToken,
-        wallet.publicKey,
-        keypair.publicKey,
-        TOKEN_2022_PROGRAM_ID
-      )
-    );
+    //   const transaction2 = new Transaction().add(
+    //     createAssociatedTokenAccountInstruction(
+    //       wallet.publicKey,
+    //       associatedToken,
+    //       wallet.publicKey,
+    //       keypair.publicKey,
+    //       TOKEN_2022_PROGRAM_ID
+    //     )
+    //   );
 
-    await wallet.sendTransaction(transaction2, connection);
+    //   await wallet.sendTransaction(transaction2, connection);
 
-    const transaction3 = new Transaction().add(
-      createMintToInstruction(
-        keypair.publicKey,
-        associatedToken,
-        wallet.publicKey,
-        1000000000,
-        [],
-        TOKEN_2022_PROGRAM_ID
-      )
-    );
+    //   const transaction3 = new Transaction().add(
+    //     createMintToInstruction(
+    //       keypair.publicKey,
+    //       associatedToken,
+    //       wallet.publicKey,
+    //       1000000000,
+    //       [],
+    //       TOKEN_2022_PROGRAM_ID
+    //     )
+    //   );
 
-    await wallet.sendTransaction(transaction3, connection);
+    //   await wallet.sendTransaction(transaction3, connection);
 
-    console.log("Minted!");
+    //   console.log("Minted!");
+    // };
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white p-6">
       <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-green-500"></div>
