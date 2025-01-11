@@ -117,7 +117,7 @@ function LaunchPad() {
     //   TOKEN_2022_PROGRAM_ID
     // );
 
-    // console.log(associatedToken.toBase58());
+    console.log(associatedToken.toBase58());
 
     //   const transaction2 = new Transaction().add(
     //     createAssociatedTokenAccountInstruction(
