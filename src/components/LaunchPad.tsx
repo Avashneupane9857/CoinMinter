@@ -2,32 +2,14 @@ import React, { useState } from "react";
 import { Terminal, Rocket, Image, Coins } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import {
-  createInitializeInstruction,
-  createInitializeMetadataPointerInstruction,
-  createInitializeMintInstruction,
-  ExtensionType,
-  getMintLen,
-  LENGTH_SIZE,
+  createInitializeMint2Instruction,
+  getMinimumBalanceForRentExemptMint,
   MINT_SIZE,
-  TOKEN_2022_PROGRAM_ID,
-  TYPE_SIZE,
+  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { Keypair, SystemProgram, Transaction } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-const packMetadata = (metadata: any) => {
-  const name = Buffer.from(metadata.name);
-  const symbol = Buffer.from(metadata.symbol);
-  const uri = Buffer.from(metadata.uri);
 
-  return Buffer.concat([
-    name,
-    Buffer.alloc(32 - name.length),
-    symbol,
-    Buffer.alloc(10 - symbol.length),
-    uri,
-    Buffer.alloc(200 - uri.length),
-  ]);
-};
 function LaunchPad() {
   const { connection } = useConnection();
   const wallet = useWallet();
@@ -54,50 +36,24 @@ function LaunchPad() {
     }
 
     const keypair = Keypair.generate();
-    const metadata = {
-      mint: keypair.publicKey,
-      name: formData.name,
-      symbol: formData.symbol,
-      uri: formData.imageUrl,
-      additionalMetadata: [],
-    };
-    const mintLen = getMintLen([ExtensionType.MetadataPointer]);
-    const packedMetadata = packMetadata(metadata);
-    const metadataLen = TYPE_SIZE + LENGTH_SIZE + packedMetadata.length;
-    const lamports = await connection.getMinimumBalanceForRentExemption(
-      mintLen + metadataLen
-    );
+
+    const lamports = await getMinimumBalanceForRentExemptMint(connection);
     const transaction = new Transaction().add(
       SystemProgram.createAccount({
         fromPubkey: wallet.publicKey,
         newAccountPubkey: keypair.publicKey,
         space: MINT_SIZE,
         lamports,
-        programId: TOKEN_2022_PROGRAM_ID,
+        programId: TOKEN_PROGRAM_ID,
       }),
-      createInitializeMetadataPointerInstruction(
-        keypair.publicKey,
-        wallet.publicKey,
-        keypair.publicKey,
-        TOKEN_2022_PROGRAM_ID
-      ),
-      createInitializeMintInstruction(
+
+      createInitializeMint2Instruction(
         keypair.publicKey,
         9,
         wallet.publicKey,
-        null,
-        TOKEN_2022_PROGRAM_ID
-      ),
-      createInitializeInstruction({
-        programId: TOKEN_2022_PROGRAM_ID,
-        mint: keypair.publicKey,
-        metadata: keypair.publicKey,
-        name: metadata.name,
-        symbol: metadata.symbol,
-        uri: metadata.uri,
-        mintAuthority: wallet.publicKey,
-        updateAuthority: wallet.publicKey,
-      })
+        wallet.publicKey,
+        TOKEN_PROGRAM_ID
+      )
     );
     transaction.feePayer = wallet.publicKey;
     transaction.recentBlockhash = (
@@ -108,44 +64,7 @@ function LaunchPad() {
 
     await wallet.sendTransaction(transaction, connection);
     console.log(`Token mint created at ${keypair.publicKey.toBase58()}`);
-
-    // left
-    // const associatedToken = getAssociatedTokenAddressSync(
-    //   keypair.publicKey,
-    //   wallet.publicKey,
-    //   false,
-    //   TOKEN_2022_PROGRAM_ID
-    // );
-
-    console.log(associatedToken.toBase58());
-
-    //   const transaction2 = new Transaction().add(
-    //     createAssociatedTokenAccountInstruction(
-    //       wallet.publicKey,
-    //       associatedToken,
-    //       wallet.publicKey,
-    //       keypair.publicKey,
-    //       TOKEN_2022_PROGRAM_ID
-    //     )
-    //   );
-
-    //   await wallet.sendTransaction(transaction2, connection);
-
-    //   const transaction3 = new Transaction().add(
-    //     createMintToInstruction(
-    //       keypair.publicKey,
-    //       associatedToken,
-    //       wallet.publicKey,
-    //       1000000000,
-    //       [],
-    //       TOKEN_2022_PROGRAM_ID
-    //     )
-    //   );
-
-    //   await wallet.sendTransaction(transaction3, connection);
-
-    //   console.log("Minted!");
-    // };
+    alert(`Token mint created at ${keypair.publicKey.toBase58()}`);
   };
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white p-6">
