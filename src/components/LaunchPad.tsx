@@ -3,14 +3,18 @@ import { Terminal, Rocket, Image, Coins } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import {
   createAssociatedTokenAccountInstruction,
+  createInitializeInstruction,
+  createInitializeMetadataPointerInstruction,
   createInitializeMint2Instruction,
+  createInitializeMintInstruction,
   createMintToInstruction,
   getAssociatedTokenAddressSync,
   getMinimumBalanceForRentExemptMint,
   MINT_SIZE,
+  TOKEN_2022_PROGRAM_ID,
   // TOKEN_2022_PROGRAM_ID,
-  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+
 import { Keypair, SystemProgram, Transaction } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
@@ -41,15 +45,25 @@ function LaunchPad() {
 
     try {
       const keypair = Keypair.generate();
+      // const metadata = {
+      //   mint: keypair.publicKey,
+      //   name: "KIRA",
+      //   symbol: "KIR    ",
+      //   uri: "https://cdn.100xdevs.com/metadata.json",
+      //   additionalMetadata: [],
+      // };
+      // const mintLen = getMintLen([ExtensionType.MetadataPointer]);
+      // const metadataLen = TYPE_SIZE + LENGTH_SIZE + pack(metadata).length;
 
       const lamports = await getMinimumBalanceForRentExemptMint(connection);
+
       const transaction = new Transaction().add(
         SystemProgram.createAccount({
           fromPubkey: wallet.publicKey,
           newAccountPubkey: keypair.publicKey,
           space: MINT_SIZE,
           lamports,
-          programId: TOKEN_PROGRAM_ID,
+          programId: TOKEN_2022_PROGRAM_ID,
         }),
 
         createInitializeMint2Instruction(
@@ -57,7 +71,7 @@ function LaunchPad() {
           9,
           wallet.publicKey,
           wallet.publicKey,
-          TOKEN_PROGRAM_ID
+          TOKEN_2022_PROGRAM_ID
         )
       );
       transaction.feePayer = wallet.publicKey;
@@ -77,7 +91,7 @@ function LaunchPad() {
         keypair.publicKey,
         wallet.publicKey,
         false,
-        TOKEN_PROGRAM_ID
+        TOKEN_2022_PROGRAM_ID
       );
 
       console.log("Associated Token yo ho ", associatedToken.toBase58());
@@ -87,7 +101,7 @@ function LaunchPad() {
           associatedToken,
           wallet.publicKey,
           keypair.publicKey,
-          TOKEN_PROGRAM_ID
+          TOKEN_2022_PROGRAM_ID
         )
       );
       transaction2.feePayer = wallet.publicKey;
@@ -107,7 +121,7 @@ function LaunchPad() {
           wallet.publicKey,
           1000000000,
           [],
-          TOKEN_PROGRAM_ID
+          TOKEN_2022_PROGRAM_ID
         )
       );
       transaction3.feePayer = wallet.publicKey;
@@ -219,5 +233,4 @@ function LaunchPad() {
     </div>
   );
 }
-
 export default LaunchPad;
