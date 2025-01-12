@@ -2,9 +2,13 @@ import React, { useState } from "react";
 import { Terminal, Rocket, Image, Coins } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import {
+  createAssociatedTokenAccountInstruction,
   createInitializeMint2Instruction,
+  createMintToInstruction,
+  getAssociatedTokenAddressSync,
   getMinimumBalanceForRentExemptMint,
   MINT_SIZE,
+  // TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { Keypair, SystemProgram, Transaction } from "@solana/web3.js";
@@ -35,36 +39,91 @@ function LaunchPad() {
       return;
     }
 
-    const keypair = Keypair.generate();
+    try {
+      const keypair = Keypair.generate();
 
-    const lamports = await getMinimumBalanceForRentExemptMint(connection);
-    const transaction = new Transaction().add(
-      SystemProgram.createAccount({
-        fromPubkey: wallet.publicKey,
-        newAccountPubkey: keypair.publicKey,
-        space: MINT_SIZE,
-        lamports,
-        programId: TOKEN_PROGRAM_ID,
-      }),
+      const lamports = await getMinimumBalanceForRentExemptMint(connection);
+      const transaction = new Transaction().add(
+        SystemProgram.createAccount({
+          fromPubkey: wallet.publicKey,
+          newAccountPubkey: keypair.publicKey,
+          space: MINT_SIZE,
+          lamports,
+          programId: TOKEN_PROGRAM_ID,
+        }),
 
-      createInitializeMint2Instruction(
+        createInitializeMint2Instruction(
+          keypair.publicKey,
+          9,
+          wallet.publicKey,
+          wallet.publicKey,
+          TOKEN_PROGRAM_ID
+        )
+      );
+      transaction.feePayer = wallet.publicKey;
+      transaction.recentBlockhash = (
+        await connection.getLatestBlockhash()
+      ).blockhash;
+      transaction.partialSign(keypair);
+      // console.log(transaction, connection);
+
+      await wallet.sendTransaction(transaction, connection);
+      console.log(`Token mint created at ${keypair.publicKey.toBase58()}`);
+      alert(`Token mint created at ${keypair.publicKey.toBase58()}`);
+
+      //Actually minting the token (ATA) esma chai kati balance cha user sanga store huncah for specifc user (wallet) diff ATA huncha
+
+      const associatedToken = getAssociatedTokenAddressSync(
         keypair.publicKey,
-        9,
         wallet.publicKey,
-        wallet.publicKey,
+        false,
         TOKEN_PROGRAM_ID
-      )
-    );
-    transaction.feePayer = wallet.publicKey;
-    transaction.recentBlockhash = (
-      await connection.getLatestBlockhash()
-    ).blockhash;
-    transaction.partialSign(keypair);
-    console.log(transaction, connection);
+      );
 
-    await wallet.sendTransaction(transaction, connection);
-    console.log(`Token mint created at ${keypair.publicKey.toBase58()}`);
-    alert(`Token mint created at ${keypair.publicKey.toBase58()}`);
+      console.log("Associated Token yo ho ", associatedToken.toBase58());
+      const transaction2 = new Transaction().add(
+        createAssociatedTokenAccountInstruction(
+          wallet.publicKey,
+          associatedToken,
+          wallet.publicKey,
+          keypair.publicKey,
+          TOKEN_PROGRAM_ID
+        )
+      );
+      transaction2.feePayer = wallet.publicKey;
+      transaction2.recentBlockhash = (
+        await connection.getLatestBlockhash()
+      ).blockhash;
+      const signedTx2 = await wallet.signTransaction(transaction2);
+      const tx2Id = await connection.sendRawTransaction(signedTx2.serialize());
+      const confirmation = await connection.getSignatureStatus(tx2Id, {
+        searchTransactionHistory: true,
+      });
+
+      const transaction3 = new Transaction().add(
+        createMintToInstruction(
+          keypair.publicKey,
+          associatedToken,
+          wallet.publicKey,
+          1000000000,
+          [],
+          TOKEN_PROGRAM_ID
+        )
+      );
+      transaction3.feePayer = wallet.publicKey;
+      transaction3.recentBlockhash = (
+        await connection.getLatestBlockhash()
+      ).blockhash;
+      const signedTx3 = await wallet.signTransaction(transaction3);
+      const tx3Id = await connection.sendRawTransaction(signedTx3.serialize());
+      const confirmation2 = await connection.getSignatureStatus(tx3Id, {
+        searchTransactionHistory: true,
+      });
+      console.log("Minted!");
+    } catch (e) {
+      console.error("Error creating token:", e);
+      alert(`Error creating token: ${e}`);
+    }
   };
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white p-6">
