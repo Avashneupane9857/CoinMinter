@@ -3,10 +3,7 @@ import { Terminal, Rocket, Image, Coins } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import {
   createAssociatedTokenAccountInstruction,
-  createInitializeInstruction,
-  createInitializeMetadataPointerInstruction,
   createInitializeMint2Instruction,
-  createInitializeMintInstruction,
   createMintToInstruction,
   getAssociatedTokenAddressSync,
   getMinimumBalanceForRentExemptMint,
@@ -110,7 +107,7 @@ function LaunchPad() {
       ).blockhash;
       const signedTx2 = await wallet.signTransaction(transaction2);
       const tx2Id = await connection.sendRawTransaction(signedTx2.serialize());
-      const confirmation = await connection.getSignatureStatus(tx2Id, {
+      await connection.getSignatureStatus(tx2Id, {
         searchTransactionHistory: true,
       });
 
@@ -130,7 +127,7 @@ function LaunchPad() {
       ).blockhash;
       const signedTx3 = await wallet.signTransaction(transaction3);
       const tx3Id = await connection.sendRawTransaction(signedTx3.serialize());
-      const confirmation2 = await connection.getSignatureStatus(tx3Id, {
+      await connection.getSignatureStatus(tx3Id, {
         searchTransactionHistory: true,
       });
       console.log("Minted!");
