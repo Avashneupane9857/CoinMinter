@@ -106,7 +106,7 @@ function LaunchPad() {
           keypair.publicKey,
           associatedToken,
           wallet.publicKey,
-          1000000000,
+         10000000000,
           [],
           TOKEN_2022_PROGRAM_ID
         )
