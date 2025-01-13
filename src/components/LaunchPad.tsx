@@ -42,16 +42,6 @@ function LaunchPad() {
 
     try {
       const keypair = Keypair.generate();
-      // const metadata = {
-      //   mint: keypair.publicKey,
-      //   name: "KIRA",
-      //   symbol: "KIR    ",
-      //   uri: "https://cdn.100xdevs.com/metadata.json",
-      //   additionalMetadata: [],
-      // };
-      // const mintLen = getMintLen([ExtensionType.MetadataPointer]);
-      // const metadataLen = TYPE_SIZE + LENGTH_SIZE + pack(metadata).length;
-
       const lamports = await getMinimumBalanceForRentExemptMint(connection);
 
       const transaction = new Transaction().add(
